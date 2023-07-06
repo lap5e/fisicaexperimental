@@ -1,0 +1,54 @@
+// Definindo os pinos utilizados pelo relé e pelo LDR
+const int relePin = 12;
+const int ldrPin = A0;
+
+// Variáveis para controle do cronômetro
+unsigned long tempoInicio = 0;
+bool cronometroIniciado = false;
+
+void setup() {
+  // Inicializando o relé como saída
+  pinMode(relePin, OUTPUT);
+
+  // Inicializando o LDR como entrada
+  pinMode(ldrPin, INPUT);
+
+  // Iniciando a comunicação serial
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Verificando se o LDR está bloqueado (sem luz)
+  if (analogRead(ldrPin) <= 100) {
+    // Desligando o relé
+    digitalWrite(relePin, LOW);
+    
+
+    // Iniciando o cronômetro
+    if (!cronometroIniciado) {
+      tempoInicio = millis();
+      cronometroIniciado = true;
+    }
+  } else {
+    // Ligando o relé
+    digitalWrite(relePin, HIGH);
+
+    // Reiniciando o cronômetro
+    cronometroIniciado = false;
+
+    // Parando o cronômetro
+    tempoInicio = 0;
+    delay(1000);  //tempo de espera que o relé fica desligado, ex: 1s
+  }
+
+  // Verificando se o cronômetro está em execução
+  if (cronometroIniciado) {
+    unsigned long tempoAtual = millis();
+    unsigned long tempoDecorrido = tempoAtual - tempoInicio;
+
+    // Exibindo o tempo decorrido no monitor serial
+    Serial.print("Tempo decorrido: ");
+    Serial.print(tempoDecorrido / 1000);
+    Serial.println("s");
+  }
+}
