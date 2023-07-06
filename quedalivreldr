@@ -1,10 +1,15 @@
 // Definindo os pinos utilizados pelo relé e pelo LDR
-const int relePin = 12;
+const int relePin = 2;
 const int ldrPin = A0;
 
 // Variáveis para controle do cronômetro
 unsigned long tempoInicio = 0;
+unsigned long tempoFinal = 0;
 bool cronometroIniciado = false;
+
+// Variáveis para cálculo da aceleração da gravidade
+const float alturaLDR = 0.1; // Altura em metros
+float aceleracaoGravidade = 0.0;
 
 void setup() {
   // Inicializando o relé como saída
@@ -18,37 +23,45 @@ void setup() {
 }
 
 void loop() {
+  if (Serial.available() > 0) {
+    // Lendo o comando enviado pelo monitor serial
+    char comando = Serial.read();
+
+    if (comando == 'D' || comando == 'd') {
+      // Desligando o relé
+      digitalWrite(relePin, LOW);
+      Serial.println("Relé desligado!");
+
+      // Iniciando o cronômetro
+      if (!cronometroIniciado) {
+        tempoInicio = millis();
+        cronometroIniciado = true;
+        Serial.println("Cronômetro iniciado!");
+      }
+    }
+  }
+
   // Verificando se o LDR está bloqueado (sem luz)
-  if (analogRead(ldrPin) <= 100) {
+  if (analogRead(ldrPin) <= 100 && cronometroIniciado) {
     // Desligando o relé
     digitalWrite(relePin, LOW);
-    
 
-    // Iniciando o cronômetro
-    if (!cronometroIniciado) {
-      tempoInicio = millis();
-      cronometroIniciado = true;
-    }
-  } else {
-    // Ligando o relé
-    digitalWrite(relePin, HIGH);
-
-    // Reiniciando o cronômetro
+    // Finalizando o cronômetro
     cronometroIniciado = false;
+    tempoFinal = millis();
+    Serial.println("Cronômetro finalizado!");
 
-    // Parando o cronômetro
-    tempoInicio = 0;
-    delay(1000);  //tempo de espera que o relé fica desligado, ex: 1s
+    // Calculando a aceleração da gravidade
+    float tempoDecorrido = (tempoFinal - tempoInicio) / 1000.0; // Tempo decorrido em segundos
+    aceleracaoGravidade = (2 * alturaLDR) / (tempoDecorrido * tempoDecorrido);
+    Serial.print("Aceleração da gravidade: ");
+    Serial.print(aceleracaoGravidade);
+    Serial.println(" m/s²");
   }
 
   // Verificando se o cronômetro está em execução
   if (cronometroIniciado) {
-    unsigned long tempoAtual = millis();
-    unsigned long tempoDecorrido = tempoAtual - tempoInicio;
-
-    // Exibindo o tempo decorrido no monitor serial
-    Serial.print("Tempo decorrido: ");
-    Serial.print(tempoDecorrido / 1000);
-    Serial.println("s");
+    // Ligando o relé
+    digitalWrite(relePin, HIGH);
   }
 }
